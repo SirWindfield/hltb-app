@@ -1,0 +1,11 @@
+<resources>
+    <string name="app_name">HowLongToBeat</string>
+
+    <!-- card view -->
+    <string name="main_story">Main Story</string>
+    <string name="main_story_plus_extra">Main + Extra</string>
+    <string name="completionist">Completionist</string>
+    <string name="all_styles">All Styles</string>
+
+    <string name="search_title">Search</string>
+</resources>
