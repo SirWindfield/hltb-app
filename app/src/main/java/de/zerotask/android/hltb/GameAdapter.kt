@@ -17,9 +17,12 @@ class GameAdapter(private val context: Context,
                   var games: ArrayList<Game>) : RecyclerView.Adapter<GameAdapter.ViewHolder>() {
 
     override fun onBindViewHolder(holder: ViewHolder?, position: Int) {
-        val game = games.get(position)
+        val game = games[position]
 
         holder?.title?.text = game.name
+        holder?.mainStory?.text = game.gameplayMain.toString()
+        holder?.completionist?.text = game.gameplayCompletionist.toString()
+
         // load image
         Picasso.with(context)
                 .load(game.imageUrl)
@@ -39,9 +42,10 @@ class GameAdapter(private val context: Context,
     class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
 
         val title: TextView = view.findViewById(R.id.txt_title)
-        val mainStory: TextView = view.findViewById(R.id.txt_main_story)
-        val mainPlusExtra: TextView = view.findViewById(R.id.txt_main_extra)
-        val completionist: TextView = view.findViewById(R.id.txt_completionist)
+        val mainStory: TextView = view.findViewById(R.id.txt_hours_main_story)
+        val mainPlusExtra: TextView = view.findViewById(R.id.txt_hours_main_extra)
+        val completionist: TextView = view.findViewById(R.id.txt_hours_completionist)
+        val allStyles: TextView = view.findViewById(R.id.txt_hours_all_styles)
 
         val coverImage: ImageView = view.findViewById(R.id.img_cover)
     }

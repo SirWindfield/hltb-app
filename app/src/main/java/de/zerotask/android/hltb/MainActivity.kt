@@ -37,7 +37,10 @@ class MainActivity : AppCompatActivity() {
         searchView.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
 
             override fun onQueryTextSubmit(query: String?): Boolean {
-                // search on hltb
+                // make sure we lose focus so the kb closes automatically
+                searchView.clearFocus()
+
+                // search the web api
                 adapter.games = api.search(query!!)
                 adapter.notifyDataSetChanged()
                 return true
