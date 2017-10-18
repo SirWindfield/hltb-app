@@ -1,8 +1,11 @@
 package de.zerotask.android.hltb.api.hltb
 
 import android.util.Log
+import ch.qos.logback.classic.Level
+import ch.qos.logback.classic.Logger
 import de.zerotask.android.hltb.model.Game
 import io.reactivex.schedulers.Schedulers
+import mu.KLogging
 import org.jsoup.Jsoup
 import org.jsoup.parser.Parser
 import java.lang.Double.parseDouble
@@ -13,11 +16,17 @@ import java.lang.Integer.parseInt
  */
 class HLTBParser {
 
+    companion object: KLogging()
+
     private val IDENTIFIER_MAIN_STORY = "Main Story"
     private val IDENTIFIER_COMPLETIONIST = "Completionist"
 
     private val api by lazy {
         HLTBWebAPI.create()
+    }
+
+    init {
+        (logger.underlyingLogger as Logger).level = Level.DEBUG
     }
 
     fun search(query: String): ArrayList<Game> {
@@ -59,8 +68,8 @@ class HLTBParser {
     }
 
     private fun parse(content: String): ArrayList<Game> {
-        val document = Jsoup.parse(content, "", Parser.xmlParser())
-        val lists = document.select("li")
+        val doc = Jsoup.parse(content, "", Parser.xmlParser())
+        val lists = doc.select("li")
 
         val array = ArrayList<Game>()
         lists.forEach { li ->
@@ -72,13 +81,14 @@ class HLTBParser {
             val detailID = hrefID.substring(hrefID.indexOf("?id=") + 4)
             val imageUrl = "https://howlongtobeat.com/" + gameTitleElem.select("img").first().attr("src")
 
+            logger.debug { "Processing game title $title" }
+
             var main = 0.0
             var complete = 0.0
             var steps = 0
 
             // try to parse the game time
             val timeElements = li.select(".search_list_details_block")[0].child(0)
-            println(timeElements)
             for(i in timeElements.children().indices) {
                 // skip if possible
                 if(steps > 0) {
@@ -87,24 +97,24 @@ class HLTBParser {
                 }
 
                 val element = timeElements.child(i)
-                Log.d("PARSER", element.toString())
+                //Log.d("PARSER", element.toString())
                 if(element != null) {
                     val type = element.text().trim()
-                    Log.d("PARSER", "div content: " + type)
+                    //Log.d("PARSER", "div content: " + type)
 
                     when(type) {
                         IDENTIFIER_MAIN_STORY -> {
-                            Log.d("PARSER", "Parsing time for element " + type)
+                            // Log.d("PARSER", "Parsing time for element " + type)
                             val time = parseTime(timeElements.child(i + 1).text().trim())
-                            Log.d("PARSER", "Found time: " + time)
+                            // Log.d("PARSER", "Found time: " + time)
                             println("Time: " + time)
                             main = time
                         }
 
                         IDENTIFIER_COMPLETIONIST -> {
-                            Log.d("PARSER", "Parsing time for element " + type)
+                            //Log.d("PARSER", "Parsing time for element " + type)
                             val time = parseTime(timeElements.child(i + 1).text().trim())
-                            Log.d("PARSER", "Found time: " + time)
+                            //Log.d("PARSER", "Found time: " + time)
                             println("Time: " + time)
                             complete = time
                         }
