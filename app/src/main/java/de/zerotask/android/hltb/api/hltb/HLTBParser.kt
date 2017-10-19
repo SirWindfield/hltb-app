@@ -13,8 +13,12 @@ import java.lang.Integer.parseInt
  */
 class HLTBParser {
 
-    private val IDENTIFIER_MAIN_STORY = "Main Story"
-    private val IDENTIFIER_COMPLETIONIST = "Completionist"
+    // html text markers
+    companion object {
+        const val IDENTIFIER_MAIN_STORY: String = "Main Story"
+        const val IDENTIFIER_COMPLETIONIST: String = "Completionist"
+    }
+
 
     private val api by lazy {
         HLTBWebAPI.create()
@@ -108,10 +112,6 @@ class HLTBParser {
                             println("Time: " + time)
                             complete = time
                         }
-                    }
-
-                    if (type.contains(IDENTIFIER_MAIN_STORY)) {
-
                     }
 
                     // skip next div since we already read the value
