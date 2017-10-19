@@ -19,7 +19,6 @@ class HLTBParser {
         const val IDENTIFIER_COMPLETIONIST: String = "Completionist"
     }
 
-
     private val api by lazy {
         HLTBWebAPI.create()
     }
