@@ -20,8 +20,8 @@ class HLTBParser {
     companion object {
         const val IDENTIFIER_MAIN_STORY: String = "Main Story"
         const val IDENTIFIER_COMPLETIONIST: String = "Completionist"
-      
-        val logger: KLogging()
+
+        val logger = KLogging().logger
     }
 
     private val api by lazy {
@@ -81,7 +81,7 @@ class HLTBParser {
             val gameTitleElem = li.select("a").first()
 
             // only proceed if there are actually games returned from the api
-            if(gameTitleElem != null) {
+            if (gameTitleElem != null) {
                 // game information
                 val title = gameTitleElem.attr("title")
                 val hrefID = gameTitleElem.attr("href")
@@ -126,8 +126,10 @@ class HLTBParser {
                                 complete = time
                             }
                         }
-                    // skip next div since we already read the value
-                    steps = 1
+
+                        // skip next div since we already read the value
+                        steps = 1
+                    }
                 }
 
                 val game = Game(detailID, title, imageUrl, main, complete)
@@ -135,7 +137,6 @@ class HLTBParser {
                 array.add(game)
             }
         }
-
         return array
     }
 }
