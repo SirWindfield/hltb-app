@@ -13,38 +13,64 @@ import java.lang.Double.parseDouble
 import java.lang.Integer.parseInt
 
 /**
- * Created by Sven on 17. Okt. 2017.
+ * A parser used to parse the html response from https://howlongtobeat.com.
  */
 class HLTBParser {
 
     companion object {
+
+        /**
+         * The identifier used to search for the main story gameplay time.
+         */
         const val IDENTIFIER_MAIN_STORY: String = "Main Story"
+
+        /**
+         * The identifier used to search for the completionist gameplay time.
+         */
         const val IDENTIFIER_COMPLETIONIST: String = "Completionist"
 
+        /*
+         * The logger instance used to log debug information.
+         */
         val logger = KLogging().logger
     }
 
+    // created lazily, if the user doesn't need the api there is no need in creating it.
     private val api by lazy {
         HLTBWebAPI.create()
     }
 
     init {
+        // make sure that we set the logger level to debug.
+        // the underlying slf4j implementation used here is logback.
         (logger.underlyingLogger as Logger).level = Level.DEBUG
     }
 
+    /**
+     * Searches the howlongtobeat database for any game matching the search query.
+     *
+     * @param query The search query used for retrieving any matching game.
+     * @return An observable stream pushing game instances.
+     */
     fun search(query: String): Observable<Game> {
-        // TODO("do within other thread and don't block ui")
         // retrieve the response
         return api.search(query)                                     // ui thread
                 .subscribeOn(Schedulers.computation())               // io thread
-                // .observeOn(AndroidSchedulers.mainThread())        // io thread
                 .flatMapObservable { processResponse(it.string()) }  // io thread
     }
 
+    /**
+     * Processes the response by converting the response body into an observable.
+     */
     private fun processResponse(response: String): Observable<Game> {
         return Observable.fromIterable(parse(response))
     }
 
+    /**
+     * Parses the given gameplay time.
+     *
+     * Time can be either a range of times or a static time quantity.
+     */
     private fun parseTime(text: String): Double {
         if (text == "--") {
             return 0.0
@@ -57,11 +83,19 @@ class HLTBParser {
         return getTime(text)
     }
 
+    /**
+     * Handles time range parsing.
+     */
     private fun handleRange(text: String): Double {
         val range = text.split('-')
         return (getTime(range[0]) + getTime(range[1])) / 2.0
     }
 
+    /**
+     * Returns the time from a string representing the time.
+     *
+     * E.g.: 10, 10 1/4, 24, 32.4 etc...
+     */
     private fun getTime(text: String): Double {
         val time = text.substring(0, text.indexOf(' '))
 
@@ -72,6 +106,13 @@ class HLTBParser {
         return parseDouble(time)
     }
 
+    /**
+     * Parses the whole response body and returns an array list holding each found
+     * game.
+     *
+     * This method will be wrapped within an Observable to prevent any thread blocking
+     * and enable async calls to the API.
+     */
     private fun parse(content: String): ArrayList<Game> {
         val doc = Jsoup.parse(content, "", Parser.xmlParser())
         val lists = doc.select("li")
@@ -82,6 +123,7 @@ class HLTBParser {
 
             // only proceed if there are actually games returned from the api
             if (gameTitleElem != null) {
+
                 // game information
                 val title = gameTitleElem.attr("title")
                 val hrefID = gameTitleElem.attr("href")
@@ -97,7 +139,11 @@ class HLTBParser {
                 // try to parse the game time
                 val timeElements = li.select(".search_list_details_block")[0].child(0)
                 for (i in timeElements.children().indices) {
+
                     // skip if possible
+                    // this small code is needed since kotlin doesn't allow one to
+                    // break the current for-each iteration.
+                    // TODO("maybe goto?")
                     if (steps > 0) {
                         steps--
                         continue
@@ -111,19 +157,11 @@ class HLTBParser {
 
                         when (type) {
                             IDENTIFIER_MAIN_STORY -> {
-                                // Log.d("PARSER", "Parsing time for element " + type)
-                                val time = parseTime(timeElements.child(i + 1).text().trim())
-                                // Log.d("PARSER", "Found time: " + time)
-                                println("Time: " + time)
-                                main = time
+                                main = parseTime(timeElements.child(i + 1).text().trim())
                             }
 
                             IDENTIFIER_COMPLETIONIST -> {
-                                //Log.d("PARSER", "Parsing time for element " + type)
-                                val time = parseTime(timeElements.child(i + 1).text().trim())
-                                //Log.d("PARSER", "Found time: " + time)
-                                println("Time: " + time)
-                                complete = time
+                                complete = parseTime(timeElements.child(i + 1).text().trim())
                             }
                         }
 
@@ -133,10 +171,11 @@ class HLTBParser {
                 }
 
                 val game = Game(detailID, title, imageUrl, main, complete)
-                Log.i("LIST", game.toString())
                 array.add(game)
             }
         }
+
+        logger.debug { "Found a total of ${array.size} game titles matching $content" }
         return array
     }
 }
