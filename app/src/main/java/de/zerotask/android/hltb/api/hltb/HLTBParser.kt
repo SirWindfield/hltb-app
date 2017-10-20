@@ -17,10 +17,12 @@ import java.lang.Integer.parseInt
  */
 class HLTBParser {
 
-    companion object : KLogging()
-
-    private val IDENTIFIER_MAIN_STORY = "Main Story"
-    private val IDENTIFIER_COMPLETIONIST = "Completionist"
+    companion object {
+        const val IDENTIFIER_MAIN_STORY: String = "Main Story"
+        const val IDENTIFIER_COMPLETIONIST: String = "Completionist"
+      
+        val logger: KLogging()
+    }
 
     private val api by lazy {
         HLTBWebAPI.create()
@@ -124,14 +126,8 @@ class HLTBParser {
                                 complete = time
                             }
                         }
-
-                        if (type.contains(IDENTIFIER_MAIN_STORY)) {
-
-                        }
-
-                        // skip next div since we already read the value
-                        steps = 1
-                    }
+                    // skip next div since we already read the value
+                    steps = 1
                 }
 
                 val game = Game(detailID, title, imageUrl, main, complete)
