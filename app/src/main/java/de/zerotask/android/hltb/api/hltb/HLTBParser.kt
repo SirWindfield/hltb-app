@@ -4,6 +4,7 @@ import android.util.Log
 import ch.qos.logback.classic.Level
 import ch.qos.logback.classic.Logger
 import de.zerotask.android.hltb.model.Game
+import io.reactivex.Observable
 import io.reactivex.schedulers.Schedulers
 import mu.KLogging
 import org.jsoup.Jsoup
@@ -16,7 +17,7 @@ import java.lang.Integer.parseInt
  */
 class HLTBParser {
 
-    companion object: KLogging()
+    companion object : KLogging()
 
     private val IDENTIFIER_MAIN_STORY = "Main Story"
     private val IDENTIFIER_COMPLETIONIST = "Completionist"
@@ -29,23 +30,25 @@ class HLTBParser {
         (logger.underlyingLogger as Logger).level = Level.DEBUG
     }
 
-    fun search(query: String): ArrayList<Game> {
+    fun search(query: String): Observable<Game> {
         // TODO("do within other thread and don't block ui")
         // retrieve the response
-        val body = api.search(query)
-                .subscribeOn(Schedulers.io())
-                // .observeOn(AndroidSchedulers.mainThread())
-                .blockingFirst()
+        return api.search(query)                                     // ui thread
+                .subscribeOn(Schedulers.computation())               // io thread
+                // .observeOn(AndroidSchedulers.mainThread())        // io thread
+                .flatMapObservable { processResponse(it.string()) }  // io thread
+    }
 
-        return parse(body.string())
+    private fun processResponse(response: String): Observable<Game> {
+        return Observable.fromIterable(parse(response))
     }
 
     private fun parseTime(text: String): Double {
-        if(text == "--") {
+        if (text == "--") {
             return 0.0
         }
 
-        if(text.indexOf('-') > -1) {
+        if (text.indexOf('-') > -1) {
             return handleRange(text)
         }
 
@@ -75,63 +78,66 @@ class HLTBParser {
         lists.forEach { li ->
             val gameTitleElem = li.select("a").first()
 
-            // game information
-            val title = gameTitleElem.attr("title")
-            val hrefID = gameTitleElem.attr("href")
-            val detailID = hrefID.substring(hrefID.indexOf("?id=") + 4)
-            val imageUrl = "https://howlongtobeat.com/" + gameTitleElem.select("img").first().attr("src")
+            // only proceed if there are actually games returned from the api
+            if(gameTitleElem != null) {
+                // game information
+                val title = gameTitleElem.attr("title")
+                val hrefID = gameTitleElem.attr("href")
+                val detailID = hrefID.substring(hrefID.indexOf("?id=") + 4)
+                val imageUrl = "https://howlongtobeat.com/" + gameTitleElem.select("img").first().attr("src")
 
-            logger.debug { "Processing game title $title" }
+                logger.debug { "Processing game title $title" }
 
-            var main = 0.0
-            var complete = 0.0
-            var steps = 0
+                var main = 0.0
+                var complete = 0.0
+                var steps = 0
 
-            // try to parse the game time
-            val timeElements = li.select(".search_list_details_block")[0].child(0)
-            for(i in timeElements.children().indices) {
-                // skip if possible
-                if(steps > 0) {
-                    steps--
-                    continue
-                }
-
-                val element = timeElements.child(i)
-                //Log.d("PARSER", element.toString())
-                if(element != null) {
-                    val type = element.text().trim()
-                    //Log.d("PARSER", "div content: " + type)
-
-                    when(type) {
-                        IDENTIFIER_MAIN_STORY -> {
-                            // Log.d("PARSER", "Parsing time for element " + type)
-                            val time = parseTime(timeElements.child(i + 1).text().trim())
-                            // Log.d("PARSER", "Found time: " + time)
-                            println("Time: " + time)
-                            main = time
-                        }
-
-                        IDENTIFIER_COMPLETIONIST -> {
-                            //Log.d("PARSER", "Parsing time for element " + type)
-                            val time = parseTime(timeElements.child(i + 1).text().trim())
-                            //Log.d("PARSER", "Found time: " + time)
-                            println("Time: " + time)
-                            complete = time
-                        }
+                // try to parse the game time
+                val timeElements = li.select(".search_list_details_block")[0].child(0)
+                for (i in timeElements.children().indices) {
+                    // skip if possible
+                    if (steps > 0) {
+                        steps--
+                        continue
                     }
 
-                    if (type.contains(IDENTIFIER_MAIN_STORY)) {
+                    val element = timeElements.child(i)
+                    //Log.d("PARSER", element.toString())
+                    if (element != null) {
+                        val type = element.text().trim()
+                        //Log.d("PARSER", "div content: " + type)
 
+                        when (type) {
+                            IDENTIFIER_MAIN_STORY -> {
+                                // Log.d("PARSER", "Parsing time for element " + type)
+                                val time = parseTime(timeElements.child(i + 1).text().trim())
+                                // Log.d("PARSER", "Found time: " + time)
+                                println("Time: " + time)
+                                main = time
+                            }
+
+                            IDENTIFIER_COMPLETIONIST -> {
+                                //Log.d("PARSER", "Parsing time for element " + type)
+                                val time = parseTime(timeElements.child(i + 1).text().trim())
+                                //Log.d("PARSER", "Found time: " + time)
+                                println("Time: " + time)
+                                complete = time
+                            }
+                        }
+
+                        if (type.contains(IDENTIFIER_MAIN_STORY)) {
+
+                        }
+
+                        // skip next div since we already read the value
+                        steps = 1
                     }
-
-                    // skip next div since we already read the value
-                    steps = 1
                 }
+
+                val game = Game(detailID, title, imageUrl, main, complete)
+                Log.i("LIST", game.toString())
+                array.add(game)
             }
-
-            val game = Game(detailID, title, imageUrl, main, complete)
-            Log.i("LIST", game.toString())
-            array.add(game)
         }
 
         return array
