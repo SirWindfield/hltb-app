@@ -13,8 +13,9 @@ import de.zerotask.android.hltb.model.Game
 /**
  * Created by Sven on 18. Okt. 2017.
  */
-class GameAdapter(private val context: Context,
-                  var games: ArrayList<Game>) : RecyclerView.Adapter<GameAdapter.ViewHolder>() {
+class GameAdapter(private val context: Context) : RecyclerView.Adapter<GameAdapter.ViewHolder>() {
+
+    var games: List<Game> = ArrayList()
 
     override fun onBindViewHolder(holder: ViewHolder?, position: Int) {
         val game = games[position]
