@@ -1,6 +1,7 @@
 package de.zerotask.android.hltb.api.hltb
 
 import io.reactivex.Observable
+import io.reactivex.Single
 import okhttp3.ResponseBody
 import retrofit2.Retrofit
 import retrofit2.adapter.rxjava2.RxJava2CallAdapterFactory
@@ -15,7 +16,7 @@ interface HLTBWebAPI {
 
     @FormUrlEncoded
     @POST("search_main.php")
-    fun search(@Field("queryString") query: String): Observable<ResponseBody>
+    fun search(@Field("queryString") query: String): Single<ResponseBody>
 
     // Used for actually parsing games
     companion object {

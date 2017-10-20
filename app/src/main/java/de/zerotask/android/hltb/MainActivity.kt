@@ -6,6 +6,7 @@ import android.support.v7.widget.LinearLayoutManager
 import android.support.v7.widget.SearchView
 import android.view.Menu
 import de.zerotask.android.hltb.api.API
+import io.reactivex.android.schedulers.AndroidSchedulers
 import kotlinx.android.synthetic.main.activity_main.*
 import kotlinx.android.synthetic.main.content_main.*
 
@@ -20,8 +21,7 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
         setSupportActionBar(toolbar)
 
-        val games = api.search("witcher")
-        adapter = GameAdapter(this, games)
+        adapter = GameAdapter(this)
 
         val layoutManager = LinearLayoutManager(this)
         recycler_view.setHasFixedSize(true)
@@ -41,8 +41,14 @@ class MainActivity : AppCompatActivity() {
                 searchView.clearFocus()
 
                 // search the web api
-                adapter.games = api.search(query!!)
-                adapter.notifyDataSetChanged()
+                api.search(query!!)
+                        .observeOn(AndroidSchedulers.mainThread())
+                        .toList()
+                        .subscribe { it ->
+                            // load games into adapter and notify for changes being made
+                            adapter.games = it
+                            adapter.notifyDataSetChanged()
+                        }
                 return true
             }
 
